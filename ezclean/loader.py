@@ -1,161 +1,63 @@
-import os
-import io
 import pandas as pd
 import numpy as np
-import requests
-from pypdf import PdfReader
+import json
+import csv
+import requests as req
+import time as t
+from io import StringIO
 
-class SmartLoader:
-    def __init__(self, default_na_values=None):
+class Smart_loader:
+    
+    def __new__(cls, file_path):
         """
-        Initializes the loader with an aggressive, comprehensive list of real-world 
-        and messy null string representations commonly found in dirty datasets.
+        Special constructor method that directly returns a raw 
+        Pandas DataFrame object the moment the class is called.
         """
-        if default_na_values is None:
-            self.na_values = [
-                '?', 'N/A', 'n/a', 'NA', 'na', 'NULL', 'null', 
-                'empty', '-', '--', 'NaN', 'nan', 'none', 'None', 
-                'inf', '-inf', 'missing', 'null_value', 'void'
-            ]
-        else:
-            self.na_values = default_na_values
-
-    def load_data(self, source, **kwargs):
-        """
-        The Ultimate Universal Entry Point. Converts any incoming data source 
-        into a highly optimized Pandas DataFrame.
-        
-        Accepts:
-        - Local System Paths (.csv, .xlsx, .xls, .json, .html, .pdf)
-        - Web URLs (Direct HTTP/HTTPS links to any supported file format)
-        - Raw Python collections (Dictionaries, lists of dicts from API responses)
-        - Live Pandas DataFrames (Passes straight through for automated type optimization)
-        """
-        # Inject standard/custom missing values into user configuration arguments
-        kwargs['na_values'] = kwargs.get('na_values', []) + self.na_values
-
-        # CASE 1: Source is already an existing Pandas DataFrame
-        if isinstance(source, pd.DataFrame):
-            return self._auto_optimize_types(source.copy())
-
-        # CASE 2: Source is raw API data (dict or list of objects)
-        if isinstance(source, (dict, list)):
-            df = pd.DataFrame(source)
-            return self._auto_optimize_types(df)
-
-        # CASE 3: Source is a reference string (File path or Web Endpoint URL)
-        if isinstance(source, str):
-            if source.startswith(('http://', 'https://')):
-                return self._load_from_url(source, **kwargs)
-            if os.path.exists(source):
-                return self._load_from_local_file(source, **kwargs)
+        # 1. Your custom backward-reading character loop to isolate the extension
+        extension_letters = []
+        for char in reversed(file_path):
+            if char == '.':
+                break 
+            extension_letters.append(char)
             
-            raise FileNotFoundError(f"Provided source string is neither a valid URL nor a found local file: {source}")
-
-        raise TypeError(f"Unsupported input type: {type(source)}. Input data as a path string, URL, dict, list, or DataFrame.")
-
-    def _load_from_url(self, url, **kwargs):
-        """Downloads external files or web tables straight into memory streams."""
-        response = requests.get(url)
-        response.raise_for_status()
+        extension_letters.reverse()
+        extention = "".join(extension_letters).lower()
         
-        # Isolate base path extensions from tracking query variables
-        clean_path = url.split('?')[0]
-        ext = os.path.splitext(clean_path)[1].lower()
+        # Sector master list of supported formats
+        EXTENTION = [
+            "csv", "tsv", "txt", "fwf", 
+            "json", "jsonl", "ndjson", "xml", "html",
+            "xlsx", "xls", "xlsm", "xlsb", "ods",
+            "parquet", "pq", "feather", "arrow", "orc", "avro", "hdf5", "h5"
+        ]
 
-        if ext == '.csv':
-            df = pd.read_csv(io.StringIO(response.text), **kwargs)
-        elif ext in ['.xlsx', '.xls']:
-            df = pd.read_excel(io.BytesIO(response.content), **kwargs)
-        elif ext == '.json':
-            df = pd.read_json(io.StringIO(response.text), **kwargs)
-        elif ext in ['.html', '.htm'] or response.headers.get('Content-Type', '').startswith('text/html'):
-            # Pulls all tables from a web URL and merges them, or selects the largest one
-            dfs = pd.read_html(io.StringIO(response.text), **kwargs)
-            df = max(dfs, key=len) if dfs else pd.DataFrame()
-        else:
-            # Fallback: Try reading it as a standard CSV text stream
-            try:
-                df = pd.read_csv(io.StringIO(response.text), **kwargs)
-            except Exception:
-                raise ValueError(f"Unable to parse or auto-identify streaming web structure from URL: {url}")
+        # 2. Match extensions and route straight to raw DataFrames
+        if extention in EXTENTION:
+            
+            # Web Request Routing
+            if file_path.startswith("http") or extention == 'html':
+                response = req.get(file_path)
+                if response.status_code != 200:
+                    raise ConnectionError(f"Could not download data from URL. HTTP Code: {response.status_code}")
                 
-        return self._auto_optimize_types(df)
-
-    def _load_from_local_file(self, filepath, **kwargs):
-        """Identifies file formats and extracts structural data into a DataFrame."""
-        ext = os.path.splitext(filepath)[1].lower()
-        
-        if ext == '.csv':
-            df = pd.read_csv(filepath, **kwargs)
-        elif ext in ['.xlsx', '.xls']:
-            df = pd.read_excel(filepath, **kwargs)
-        elif ext == '.json':
-            df = pd.read_json(filepath, **kwargs)
-        elif ext in ['.html', '.htm']:
-            dfs = pd.read_html(filepath, **kwargs)
-            df = max(dfs, key=len) if dfs else pd.DataFrame()
-        elif ext == '.pdf':
-            df = self._load_pdf_as_dataframe(filepath)
+                if extention == 'csv':
+                    return pd.read_csv(StringIO(response.text))
+                elif extention == 'json':
+                    return pd.read_json(StringIO(response.text))
+                elif extention == 'html':
+                    return pd.read_html(StringIO(response.text))[0]
+            
+            # Local Storage File Routing
+            else:
+                if extention == 'csv':
+                    return pd.read_csv(file_path)
+                elif extention == 'json':
+                    return pd.read_json(file_path)
+                elif extention in ['xlsx', 'xls']:
+                    return pd.read_excel(file_path)
+                elif extention == 'parquet':
+                    return pd.read_parquet(file_path)
+                else:
+                    raise NotImplementedError(f"Extension '.{extention}' recognized but reader logic is not assigned yet.")
         else:
-            raise ValueError(f"Extension format '{ext}' is currently unsupported by ezclean.")
-            
-        return self._auto_optimize_types(df)
-
-    def _load_pdf_as_dataframe(self, filepath):
-        """Scrapes text layout matrices from PDF files and aligns them into tabular records."""
-        reader = PdfReader(filepath)
-        all_rows = []
-        
-        for page in reader.pages:
-            text = page.extract_text()
-            if not text:
-                continue
-            lines = text.strip().split('\n')
-            for line in lines:
-                if ',' in line:
-                    row = [v.strip() for v in line.split(',')]
-                elif ';' in line:
-                    row = [v.strip() for v in line.split(';')]
-                else:
-                    row = [v.strip() for v in line.split('  ') if v.strip()]
-                if row:
-                    all_rows.append(row)
-                    
-        if not all_rows:
-            return pd.DataFrame()
-            
-        header, data_rows = all_rows[0], all_rows[1:]
-        max_cols = len(header)
-        
-        # Pad short rows with missing values dynamically to ensure seamless DF alignment
-        clean_rows = [r + [np.nan]*(max_cols-len(r)) if len(r) < max_cols else r[:max_cols] for r in data_rows]
-        return pd.DataFrame(clean_rows, columns=header)
-
-    def _auto_optimize_types(self, df):
-        """Normalizes strings, registers computational NaNs, downcasts numbers, optimizes categories."""
-        if df.empty:
-            return df
-            
-        for col in df.columns:
-            if df[col].dtype == 'object':
-                df[col] = df[col].astype(str).str.strip()
-                df[col] = df[col].replace(self.na_values, np.nan)
-            
-            # Auto-downcast numeric columns to save massive system memory
-            converted_numeric = pd.to_numeric(df[col], errors='ignore')
-            if converted_numeric.dtype in ['int64', 'float64']:
-                if converted_numeric.dtype == 'float64':
-                    df[col] = pd.to_numeric(converted_numeric, downcast='float')
-                else:
-                    df[col] = pd.to_numeric(converted_numeric, downcast='integer')
-                continue
-            
-            # Low Cardinality Category conversion
-            if df[col].dtype == 'object':
-                num_unique = df[col].nunique()
-                total_rows = len(df)
-                if total_rows > 0 and (num_unique / total_rows) < 0.12:
-                    df[col] = df[col].astype('category')
-                    
-        return df
+            raise ValueError(f"This file type is not yet implemented. Please use: {EXTENTION[:5]}")
