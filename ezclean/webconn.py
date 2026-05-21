@@ -2,7 +2,7 @@ import requests as rq
 import pandas as pd
 from tabulate import tabulate
 
-def status_code_checker(url):
+def status_checker(url):
     """
     Checks a website's status and returns the data inside a Pandas DataFrame.
     """
@@ -37,11 +37,6 @@ def status_code_checker(url):
     except Exception as e:
         return pd.DataFrame({"Metric": ["Status", "Error"], "Value": ["Failed", str(e)]})
 
-# --- How to run and print with Tabulate ---
-site_to_check = "google.com"
-df_result = status_code_checker(site_to_check)
 
-# Use tabulate to format the DataFrame into a beautiful grid layout
-# headers='keys' uses the DataFrame columns ("Metric" and "Value")
-# tablefmt='fancy_grid' uses smooth Unicode box-drawing characters
-print(tabulate(df_result, headers='keys', tablefmt='fancy_grid', showindex=False))
+
+#print(tabulate(df_result, headers='keys', tablefmt='fancy_grid', showindex=False))
