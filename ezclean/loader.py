@@ -31,7 +31,7 @@ class Smart_loader:
         # 2. Define the central engine router mapping
         # Maps extensions to (Local Reader Function, Buffer Reader Function)
         ENGINE_MAP = {
-            "csv":     (lambda p, **kw: pd.read_csv(p, **kw),       lambda b, **kw: pd.read_csv(StringIO(b.decode('utf-8', errors='ignore')), **kw)),
+            "csv":     (lambda p, **kw: pd.read_csv(p, engine='python', on_bad_lines='skip', **kw), lambda b, **kw: pd.read_csv(StringIO(b.decode('utf-8', errors='ignore')), engine='python', on_bad_lines='skip', **kw)),
             "json":    (lambda p, **kw: pd.read_json(p, **kw),      lambda b, **kw: pd.read_json(StringIO(b.decode('utf-8', errors='ignore')), **kw)),
             "jsonl":   (lambda p, **kw: pd.read_json(p, lines=True, **kw), lambda b, **kw: pd.read_json(StringIO(b.decode('utf-8', errors='ignore')), lines=True, **kw)),
             "ndjson":  (lambda p, **kw: pd.read_json(p, lines=True, **kw), lambda b, **kw: pd.read_json(StringIO(b.decode('utf-8', errors='ignore')), lines=True, **kw)),
