@@ -1,25 +1,57 @@
-# ✨ ezclean-data
+# ezclean-data
 
 [![PyPI Version](https://img.shields.io/pypi/v/ezclean-data.svg)](https://pypi.org/project/ezclean-data/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python versions](https://img.shields.io/pypi/pyversions/ezclean-data.svg)](https://pypi.org/project/ezclean-data/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/ezclean-data.svg)](https://pypi.org/project/ezclean-data/)
 
-A premium, dataset-agnostic Python library designed to automate the painful parts of data loading, cleaning, and exploration. With `ezclean-data`, you can load any structured file format, sanitize outliers and null values, and instantly produce beautiful, interactive visualization dashboards or multi-variable pairplot matrices.
+A comprehensive, dataset-agnostic Python library for automated data ingestion, cleaning, preprocessing, and exploratory data analysis.
 
----
-
-## 🚀 Features
-
-- 📥 **Smart Data Loader**: Auto-detects extensions (CSV, Excel, Parquet, JSON, etc.) and routes them to optimized Pandas engines, streaming directly over HTTP or loading local paths.
-- 🧼 **Intelligent Data Cleaner**: Standardizes columns to `snake_case`, handles structural garbage strings, handles outliers via IQR boundary thresholds, and fills null values using type-specific heuristics (e.g. median for numbers).
-- 📊 **Universal Plot Grid**: Renders a generalized interactive Plotly pairplot matrix of subplots showing all possible univariate distributions (diagonal) and bivariate relationships (off-diagonal) for any dataset.
-- 🎨 **Standalone HTML Dashboard**: Generates a fully interactive, lightweight dashboard with statistics cards, a column definitions table, and a dynamic JavaScript plot builder that works fully offline!
+`ezclean-data` streamlines the repetitive tasks involved in preparing datasets by providing intelligent loading, automated sanitization, statistical summaries, advanced visualizations, and standalone interactive dashboards.
 
 ---
 
-## 📦 Installation
+## Overview
 
-Install `ezclean-data` directly from PyPI:
+Data preparation often consumes a significant portion of the data science workflow. `ezclean-data` provides a unified interface that automatically loads structured datasets, cleans inconsistencies, handles missing values and outliers, standardizes column names, and generates insightful visualizations with minimal code.
+
+The library is designed to work across a wide variety of dataset formats and structures, making it suitable for students, researchers, analysts, and machine learning practitioners.
+
+---
+
+## Features
+
+### Smart Data Loading
+
+- Automatically detects file formats and selects the appropriate Pandas engine.
+- Supports both local files and remote URLs.
+- Handles a broad range of structured data formats.
+
+### Automated Data Cleaning
+
+- Standardizes column names into consistent `snake_case` format.
+- Detects and replaces common invalid placeholder values.
+- Performs automatic type correction where appropriate.
+- Handles missing values using intelligent, data-type-aware strategies.
+- Detects and mitigates outliers using the Interquartile Range (IQR) method.
+
+### Exploratory Data Analysis
+
+- Generates detailed column summaries and completeness statistics.
+- Provides automatic visualizations based on column data types.
+- Creates generalized pairplot-style relationship matrices for rapid exploration.
+
+### Interactive Dashboard Generation
+
+- Produces self-contained HTML dashboards.
+- Includes summary statistics and data quality metrics.
+- Provides interactive Plotly-based visualizations.
+- Works entirely offline once generated.
+
+---
+
+## Installation
+
+Install directly from PyPI:
 
 ```bash
 pip install ezclean-data
@@ -27,59 +59,250 @@ pip install ezclean-data
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ```python
 from ezclean import Smart_loader, Cleaner, colname, plot, plot_dashboard
 
-# 1. Load your dataset from a file or url
+# Load dataset
 df = Smart_loader("tested.csv")
 
-# 2. Run the unified cleaning pipeline
+# Execute cleaning pipeline
 df_cleaned = Cleaner(df)
 
-# 3. Print column statistics
+# Display column statistics
 colname(df_cleaned)
 
-# 4. Plot a single column (auto-detects types)
+# Visualize a single column
 plot(df_cleaned, "survived")
 
-# 5. Plot the generalized pairplot matrix (all combinations)
+# Generate a relationship matrix
 plot(df_cleaned)
 
-# 6. Generate and open a gorgeous standalone HTML Dashboard
-plot_dashboard(df_cleaned, filename="my_dashboard.html")
+# Create an interactive dashboard
+plot_dashboard(
+    df_cleaned,
+    filename="my_dashboard.html"
+)
 ```
 
 ---
 
-## 🛠️ Module API Overview
+# API Reference
 
-### 1. `Smart_loader(file_path, **kwargs)`
-Instantly routes local or remote URLs to Pandas readers. Supported formats:
-`csv`, `tsv`, `txt`, `json`, `jsonl`, `ndjson`, `excel` (`xlsx`, `xls`, `ods`), `parquet`, `feather`, `arrow`, `orc`, `xml`, `html`, `pickle`, `stata`, `spss`, `sas`, `hdf`.
+## Smart_loader()
 
-### 2. `Cleaner(df, ...)`
-High-level cleaning pipeline wrapping:
-- `column_name_sanity()`: Clean symbols, Deduplicate underscores, Convert to `snake_case`.
-- `sanitize_data()`: Replaces structural garbage (`?`, `NULL`, `nil`) with NumPy NaNs.
-- `text_normalization()`: Trims whitespace and normalizes string fields.
-- `auto_type_correction()`: Converts column dtypes to numeric if >50% of values match.
-- `intelligent_null_filling()`: Median imputes numeric fields; fills categorical values with `"Unknown"`.
-- `handle_outliers()`: IQR-based outlier trimming.
+```python
+Smart_loader(file_path, **kwargs)
+```
 
-### 3. `plot(df, target_column=None, columns=None)`
-- If `target_column` is provided, renders a single visual (numerical gets Box+Histogram; categorical gets Donut+Bar; datetime gets Line Trend).
-- If `target_column=None`, renders `plot_matrix` containing all univariate and bivariate subplots for selected columns (default: top 5).
+Automatically loads structured datasets from local storage or remote URLs.
 
-### 4. `plot_dashboard(df, filename="ezclean_dashboard.html", show=True)`
-Writes a self-contained, interactive HTML dashboard containing:
-1. Complete column completeness summary tables.
-2. Dynamic Plotly client visualizer where users can build custom X vs Y plots.
-3. Embedded pairplot relation matrix.
+### Supported Formats
+
+| Category | Formats |
+|-----------|----------|
+| Text Files | CSV, TSV, TXT |
+| JSON Formats | JSON, JSONL, NDJSON |
+| Spreadsheet Files | XLSX, XLS, ODS |
+| Columnar Formats | Parquet, Feather, Arrow, ORC |
+| Statistical Formats | SPSS, SAS, Stata |
+| Other Formats | XML, HTML, Pickle, HDF |
 
 ---
 
-## 📄 License
+## Cleaner()
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+```python
+Cleaner(df, ...)
+```
+
+Executes a complete data-cleaning pipeline.
+
+### Included Operations
+
+#### Column Name Standardization
+
+- Converts names to `snake_case`
+- Removes special characters
+- Eliminates duplicate separators
+
+#### Data Sanitization
+
+Replaces common placeholder values such as:
+
+```text
+?
+NULL
+null
+nil
+N/A
+NaN
+```
+
+with proper missing-value representations.
+
+#### Text Normalization
+
+- Trims whitespace
+- Standardizes string formatting
+
+#### Automatic Type Detection
+
+- Converts columns to numeric types when appropriate
+- Preserves incompatible values
+
+#### Missing Value Handling
+
+- Numerical columns → Median Imputation
+- Categorical columns → `"Unknown"` Replacement
+
+#### Outlier Treatment
+
+- Uses Interquartile Range (IQR) thresholds
+- Removes extreme observations automatically
+
+---
+
+## colname()
+
+```python
+colname(df)
+```
+
+Displays detailed metadata for each column, including:
+
+- Data type
+- Missing value count
+- Completeness percentage
+- Unique value count
+- Statistical summaries
+
+---
+
+## plot()
+
+```python
+plot(df, target_column=None, columns=None)
+```
+
+### Single-Column Visualization
+
+When a target column is specified, the visualization is selected automatically based on data type.
+
+| Data Type | Visualization |
+|------------|---------------|
+| Numeric | Histogram + Box Plot |
+| Categorical | Bar Chart + Donut Chart |
+| Datetime | Trend Line |
+
+### Relationship Matrix
+
+```python
+plot(df)
+```
+
+Generates a generalized pairplot matrix displaying:
+
+- Univariate distributions
+- Correlation patterns
+- Relationships between variables
+
+---
+
+## plot_dashboard()
+
+```python
+plot_dashboard(
+    df,
+    filename="ezclean_dashboard.html",
+    show=True
+)
+```
+
+Creates a standalone interactive dashboard containing:
+
+### Dataset Summary
+
+- Dataset dimensions
+- Completeness metrics
+- Data quality statistics
+
+### Column Analysis
+
+- Data types
+- Missing values
+- Unique value counts
+
+### Interactive Visualization Builder
+
+Users can dynamically select:
+
+- X-axis variables
+- Y-axis variables
+- Plot types
+
+without writing additional code.
+
+### Relationship Matrix
+
+Embedded Plotly-based exploratory visualization for multivariate analysis.
+
+---
+
+## Example Workflow
+
+```python
+from ezclean import *
+
+df = Smart_loader("data.csv")
+
+df = Cleaner(df)
+
+colname(df)
+
+plot(df, "age")
+
+plot(df)
+
+plot_dashboard(
+    df,
+    filename="dashboard.html"
+)
+```
+
+---
+
+## Use Cases
+
+- Data Science Projects
+- Machine Learning Preprocessing
+- Academic Research
+- Exploratory Data Analysis
+- Business Intelligence Reporting
+- Rapid Dataset Validation
+- Educational Applications
+
+---
+
+## Why ezclean-data?
+
+Most data analysis projects begin with repetitive preprocessing tasks such as loading files, cleaning columns, handling missing values, detecting outliers, and creating exploratory visualizations.
+
+`ezclean-data` consolidates these operations into a simple and consistent workflow, allowing users to focus on analysis and model development rather than boilerplate data preparation code.
+
+---
+
+## License
+
+This project is licensed under the MIT License.
+
+See the `LICENSE` file for complete licensing information.
+
+---
+
+## Author
+
+Developed and maintained by **Thilac Ramesh**.
+
+Contributions, feature requests, and issue reports are welcome.
